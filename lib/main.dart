@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../screens/keywords_screen.dart';
 import '../screens/query_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/users_screen.dart';
 import '../services/api_service.dart';
 
 void main() {
