@@ -1,11 +1,12 @@
 // main.dart
+import 'package:daily_arxiv_flutter/screens/users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../screens/keywords_screen.dart';
 import '../screens/query_screen.dart';
 import '../screens/settings_screen.dart';
-import '../screens/user_selection_screen.dart';
+import '../screens/users_screen.dart';
 import '../services/api_service.dart';
 
 void main() {
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.dark, // Use dark mode by default
       initialRoute: '/',
       routes: {
-        '/': (context) => const UserSelectionScreen(),
+        '/': (context) => const UsersScreen(),
         '/query': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map;
           return QueryScreen(username: args['username'] as String);

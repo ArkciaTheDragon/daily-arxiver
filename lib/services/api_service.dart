@@ -10,18 +10,30 @@ import '../models/query_model.dart';
 import '../models/user_model.dart';
 
 class ApiService extends ChangeNotifier {
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: AppConfig().baseUrl,
-      connectTimeout: const Duration(seconds: 3),
-      receiveTimeout: const Duration(seconds: 5),
-    ),
-  );
+  final Dio _dio;
+  final AppConfig _config = AppConfig();
 
-  ApiService() {
-    AppConfig().addListener(() {
-      _dio.options.baseUrl = AppConfig().baseUrl;
-    });
+  ApiService()
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig().baseUrl,
+          connectTimeout: Duration(seconds: AppConfig().connectTimeout),
+          receiveTimeout: Duration(seconds: AppConfig().receiveTimeout),
+        ),
+      ) {
+    _config.addListener(_updateDioSettings);
+  }
+
+  void _updateDioSettings() {
+    _dio.options.baseUrl = _config.baseUrl;
+    _dio.options.connectTimeout = Duration(seconds: _config.connectTimeout);
+    _dio.options.receiveTimeout = Duration(seconds: _config.receiveTimeout);
+  }
+
+  @override
+  void dispose() {
+    _config.removeListener(_updateDioSettings);
+    super.dispose();
   }
 
   Future<List<Article>> executeQuery(QueryParameters parameters) async {

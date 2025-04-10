@@ -35,13 +35,17 @@ class ArticleCard extends StatelessWidget {
     _showErrorSnackbar(context, 'Could not open the link: $url');
 
     // Offer to copy the URL to clipboard as a fallback
-    _showCopyLinkDialog(context, url);
+    if (context.mounted) {
+      _showCopyLinkDialog(context, url);
+    }
   }
 
   void _showErrorSnackbar(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   void _showCopyLinkDialog(BuildContext context, String url) {

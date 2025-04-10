@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/article_model.dart';
 import '../models/query_model.dart';
 import '../services/api_service.dart';
-import '../widgets/article_card.dart';
 import '../widgets/keyword_input.dart';
 import '../widgets/time_range_picker.dart';
 import 'keywords_screen.dart';
@@ -16,23 +14,27 @@ class QueryScreen extends StatefulWidget {
   const QueryScreen({super.key, required this.username});
 
   @override
-  _QueryScreenState createState() => _QueryScreenState();
+  QueryScreenState createState() => QueryScreenState();
 }
 
-class _QueryScreenState extends State<QueryScreen> {
+class QueryScreenState extends State<QueryScreen> {
   final _formKey = GlobalKey<FormState>();
   final _startIndexController = TextEditingController(text: "0");
   final _endIndexController = TextEditingController(text: "10");
 
   List<String> _selectedKeywords = [];
   DateTimeRange? _selectedDateRange;
-  List<Article> _articles = [];
   bool _isLoading = false;
   bool _isLoadingKeywords = true;
 
   @override
   void initState() {
     super.initState();
+    // Set default date range to 1 month ago until today
+    _selectedDateRange = DateTimeRange(
+      start: DateTime.now().subtract(const Duration(days: 30)),
+      end: DateTime.now(),
+    );
     _loadDefaultKeywords();
   }
 
@@ -58,6 +60,7 @@ class _QueryScreenState extends State<QueryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to load default keywords: ${e.toString()}'),
+            backgroundColor: Colors.red,
           ),
         );
         setState(() {
@@ -103,7 +106,10 @@ class _QueryScreenState extends State<QueryScreen> {
         );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No articles found for your query')),
+          const SnackBar(
+            content: Text('No articles found for your query'),
+            backgroundColor: Colors.amber,
+          ),
         );
       }
     } catch (e) {
@@ -123,7 +129,8 @@ class _QueryScreenState extends State<QueryScreen> {
         title: Text('Query from ${widget.username}'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.saved_search),
+            icon: const Icon(Icons.list_alt),
+            tooltip: 'Saved Keywords',
             onPressed: () async {
               final updatedKeywords = await Navigator.push<List<String>>(
                 context,
@@ -148,44 +155,109 @@ class _QueryScreenState extends State<QueryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _isLoadingKeywords
-                  ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                  : KeywordInput(
-                    initialKeywords: _selectedKeywords,
-                    onChanged: (keywords) => _selectedKeywords = keywords,
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Keywords',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _isLoadingKeywords
+                          ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                          : KeywordInput(
+                            initialKeywords: _selectedKeywords,
+                            onChanged:
+                                (keywords) => _selectedKeywords = keywords,
+                          ),
+                    ],
                   ),
-              const SizedBox(height: 16),
-              TimeRangeDisplayPicker(
-                initialRange: _selectedDateRange,
-                onRangeSelected:
-                    (range) => setState(() => _selectedDateRange = range),
+                ),
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _startIndexController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Start'),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Time Range',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TimeRangePicker(
+                        initialRange: _selectedDateRange,
+                        onRangeSelected:
+                            (range) =>
+                                setState(() => _selectedDateRange = range),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _endIndexController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'End'),
-                      validator: (v) => v!.isEmpty ? 'Required' : null,
-                    ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Result Range',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _startIndexController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'Start Index',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (v) => v!.isEmpty ? 'Required' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _endIndexController,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'End Index',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (v) => v!.isEmpty ? 'Required' : null,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
               const SizedBox(height: 32),
               _isLoading
@@ -199,22 +271,6 @@ class _QueryScreenState extends State<QueryScreen> {
                     onPressed: _submitQuery,
                   ),
               const SizedBox(height: 24),
-              if (_articles.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 32),
-                    child: Column(
-                      children: [
-                        Icon(Icons.search, size: 48, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'Enter keywords and search parameters',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

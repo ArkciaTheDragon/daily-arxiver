@@ -11,10 +11,10 @@ class KeywordInput extends StatefulWidget {
   });
 
   @override
-  _KeywordInputState createState() => _KeywordInputState();
+  KeywordInputState createState() => KeywordInputState();
 }
 
-class _KeywordInputState extends State<KeywordInput> {
+class KeywordInputState extends State<KeywordInput> {
   final TextEditingController _controller = TextEditingController();
   late List<String> _keywords;
 

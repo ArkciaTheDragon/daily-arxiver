@@ -7,10 +7,10 @@ class ArticleListScreen extends StatelessWidget {
   final String searchQuery;
 
   const ArticleListScreen({
-    Key? key,
+    super.key,
     required this.articles,
     required this.searchQuery,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

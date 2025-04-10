@@ -15,7 +15,10 @@ class KeywordsScreenState extends State<KeywordsScreen> {
   final _keywordController = TextEditingController();
   late Future<List<String>> _keywordsFuture;
   List<String> _currentKeywords = [];
+  List<String> _originalKeywords = []; // To track original state
   late ApiService _apiService;
+  bool _hasUnsavedChanges = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -27,7 +30,11 @@ class KeywordsScreenState extends State<KeywordsScreen> {
   Future<List<String>> _loadKeywords() async {
     try {
       final keywords = await _apiService.getUserKeywords(widget.username);
-      setState(() => _currentKeywords = keywords);
+      setState(() {
+        _currentKeywords = List.from(keywords);
+        _originalKeywords = List.from(keywords); // Store original state
+        _hasUnsavedChanges = false;
+      });
       return keywords;
     } catch (e) {
       _showSnackBar('Failed to load keywords: ${e.toString()}');
@@ -36,18 +43,37 @@ class KeywordsScreenState extends State<KeywordsScreen> {
   }
 
   Future<void> _saveKeywords() async {
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
     try {
       await _apiService.updateUserKeywords(widget.username, _currentKeywords);
       _showSnackBar('Keywords saved successfully!');
+      setState(() {
+        _originalKeywords = List.from(
+          _currentKeywords,
+        ); // Update original state
+        _hasUnsavedChanges = false;
+      });
     } catch (e) {
       _showSnackBar('Failed to save keywords: ${e.toString()}');
+    } finally {
+      setState(() => _isSaving = false);
     }
   }
 
   void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   void _addKeyword() {
@@ -55,75 +81,232 @@ class KeywordsScreenState extends State<KeywordsScreen> {
       setState(() {
         _currentKeywords.add(_keywordController.text.trim());
         _keywordController.clear();
+        _checkForChanges();
       });
     }
   }
 
+  void _removeKeyword(int index) {
+    setState(() {
+      _currentKeywords.removeAt(index);
+      _checkForChanges();
+    });
+  }
+
+  void _checkForChanges() {
+    // Check if current keywords differ from original
+    if (_originalKeywords.length != _currentKeywords.length) {
+      _hasUnsavedChanges = true;
+      return;
+    }
+
+    for (int i = 0; i < _originalKeywords.length; i++) {
+      if (_originalKeywords[i] != _currentKeywords[i]) {
+        _hasUnsavedChanges = true;
+        return;
+      }
+    }
+
+    _hasUnsavedChanges = false;
+  }
+
+  Future<bool?> _showUnsavedConfirm() {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Unsaved Changes'),
+          content: const Text(
+            'You have unsaved changes. Do you want to discard them?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Discard'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Keywords of ${widget.username}'),
-        actions: [
-          IconButton(icon: const Icon(Icons.save), onPressed: _saveKeywords),
-        ],
-      ),
-      body: FutureBuilder<void>(
-        future: _keywordsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _keywordController,
-                  decoration: InputDecoration(
-                    labelText: 'Keyword',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: _addKeyword,
+    final theme = Theme.of(context);
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        bool shouldPop = true;
+        if (_hasUnsavedChanges) {
+          shouldPop = await _showUnsavedConfirm() ?? false;
+        }
+        if (context.mounted && shouldPop) Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('Keywords for ${widget.username}'),
+          elevation: 0,
+        ),
+        body: FutureBuilder<void>(
+          future: _keywordsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Material(
+                    elevation: 2,
+                    shadowColor: Colors.black.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    child: TextField(
+                      controller: _keywordController,
+                      decoration: InputDecoration(
+                        labelText: 'Add new keyword',
+                        hintText: 'Type and press Enter or tap +',
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                        prefixIcon: const Icon(Icons.tag_rounded),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            Icons.add_circle,
+                            color: theme.colorScheme.primary,
+                          ),
+                          onPressed: _addKeyword,
+                          tooltip: 'Add keyword',
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: theme.colorScheme.surface,
+                      ),
+                      onSubmitted: (_) => _addKeyword(),
                     ),
                   ),
-                  onSubmitted: (_) => _addKeyword(),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child:
-                      _currentKeywords.isEmpty
-                          ? const Center(child: Text('No keywords added yet.'))
-                          : ReorderableListView.builder(
-                            itemCount: _currentKeywords.length,
-                            itemBuilder:
-                                (ctx, index) => ListTile(
-                                  key: ValueKey(_currentKeywords[index]),
-                                  title: Text(_currentKeywords[index]),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    onPressed:
-                                        () => setState(
-                                          () =>
-                                              _currentKeywords.removeAt(index),
-                                        ),
-                                  ),
-                                ),
-                            onReorder: (oldIndex, newIndex) {
-                              setState(() {
-                                if (newIndex > oldIndex) newIndex--;
-                                final item = _currentKeywords.removeAt(
-                                  oldIndex,
-                                );
-                                _currentKeywords.insert(newIndex, item);
-                              });
-                            },
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.list_alt_rounded,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Your Keywords',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (_currentKeywords.isNotEmpty)
+                        Chip(
+                          label: Text(
+                            '${_currentKeywords.length}',
+                            style: TextStyle(
+                              color: theme.colorScheme.onPrimary,
+                              fontSize: 12,
+                            ),
                           ),
-                ),
-              ],
-            ),
-          );
-        },
+                          backgroundColor: theme.colorScheme.primary,
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      const Spacer(),
+                      Text(
+                        'Drag to reorder',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.drag_indicator,
+                        size: 16,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child:
+                        _currentKeywords.isEmpty
+                            ? Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.label,
+                                    size: 48,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: .4),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'No keywords added yet.',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: .6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                            : ReorderableListView.builder(
+                              itemCount: _currentKeywords.length,
+                              itemBuilder:
+                                  (ctx, index) => ListTile(
+                                    key: ValueKey(_currentKeywords[index]),
+                                    title: Text(_currentKeywords[index]),
+                                    trailing: IconButton(
+                                      icon: Icon(
+                                        Icons.delete,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      onPressed: () => _removeKeyword(index),
+                                    ),
+                                  ),
+                              onReorder: (oldIndex, newIndex) {
+                                setState(() {
+                                  if (newIndex > oldIndex) newIndex--;
+                                  final item = _currentKeywords.removeAt(
+                                    oldIndex,
+                                  );
+                                  _currentKeywords.insert(newIndex, item);
+                                  _checkForChanges();
+                                });
+                              },
+                            ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        floatingActionButton:
+            _hasUnsavedChanges
+                ? FloatingActionButton(
+                  onPressed: _isSaving ? null : _saveKeywords,
+                  tooltip: 'Refresh users',
+                  child:
+                      _isSaving
+                          ? const CircularProgressIndicator()
+                          : const Icon(Icons.save),
+                )
+                : null,
       ),
     );
   }

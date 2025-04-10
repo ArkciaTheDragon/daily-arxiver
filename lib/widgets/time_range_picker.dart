@@ -1,68 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class TimeRangePicker extends StatelessWidget {
-  final ValueChanged<DateTimeRange> onRangeSelected;
-
-  const TimeRangePicker({super.key, required this.onRangeSelected});
-
-  Future<void> _selectDateRange(BuildContext context) async {
-    final initialDate = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2015),
-      lastDate: DateTime(2100),
-      initialDateRange: DateTimeRange(
-        start: initialDate.subtract(const Duration(days: 7)),
-        end: initialDate,
-      ),
-      builder:
-          (context, child) => Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: Colors.blue,
-                onPrimary: Colors.white,
-              ),
-            ),
-            child: child!,
-          ),
-    );
-
-    if (picked != null) {
-      onRangeSelected(picked);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      icon: const Icon(Icons.calendar_today),
-      label: const Text('Date'),
-      style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        side: BorderSide(color: Colors.grey.shade400),
-      ),
-      onPressed: () => _selectDateRange(context),
-    );
-  }
-}
-
-// 增强版带显示的时间范围预览（可选实现）
-class TimeRangeDisplayPicker extends StatefulWidget {
+class TimeRangePicker extends StatefulWidget {
   final DateTimeRange? initialRange;
   final ValueChanged<DateTimeRange> onRangeSelected;
 
-  const TimeRangeDisplayPicker({
+  const TimeRangePicker({
     super.key,
     this.initialRange,
     required this.onRangeSelected,
   });
 
   @override
-  _TimeRangeDisplayPickerState createState() => _TimeRangeDisplayPickerState();
+  TimeRangePickerState createState() => TimeRangePickerState();
 }
 
-class _TimeRangeDisplayPickerState extends State<TimeRangeDisplayPicker> {
+class TimeRangePickerState extends State<TimeRangePicker> {
   DateTimeRange? _selectedRange;
+  final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
 
   @override
   void initState() {
@@ -70,40 +25,92 @@ class _TimeRangeDisplayPickerState extends State<TimeRangeDisplayPicker> {
     _selectedRange = widget.initialRange;
   }
 
-  String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  String _formatDateRange() {
+    if (_selectedRange == null) return "No date range selected";
+
+    final start = _dateFormat.format(_selectedRange!.start);
+    final end = _dateFormat.format(_selectedRange!.end);
+
+    return "$start to $end";
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _selectedRange == null
-                  ? "Range not selected"
-                  : "${_formatDate(_selectedRange!.start)} to ${_formatDate(_selectedRange!.end)}",
-              style: Theme.of(context).textTheme.bodyMedium,
+            Row(
+              children: [
+                Icon(
+                  Icons.date_range,
+                  size: 18,
+                  color: theme.colorScheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _formatDateRange(),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_calendar),
+                  tooltip: 'Select Date Range',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => _selectDateRange(context),
+                ),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => _selectDateRange(context),
-            ),
+            if (_selectedRange != null) const SizedBox(height: 8),
+            if (_selectedRange != null)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Chip(
+                    label: Text(
+                      'From: ${_dateFormat.format(_selectedRange!.start)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 8),
+                  Chip(
+                    label: Text(
+                      'To: ${_dateFormat.format(_selectedRange!.end)}',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            if (_selectedRange == null)
+              TextButton.icon(
+                icon: const Icon(Icons.calendar_today),
+                label: const Text('Select Date Range'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                onPressed: () => _selectDateRange(context),
+              ),
           ],
         ),
-        if (_selectedRange == null)
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              side: BorderSide(color: Colors.grey.shade400),
-            ),
-            onPressed: () => _selectDateRange(context),
-            child: const Text('Select Date Range'),
-          ),
-      ],
+      ),
     );
   }
 
@@ -118,6 +125,17 @@ class _TimeRangeDisplayPickerState extends State<TimeRangeDisplayPicker> {
             start: DateTime.now().subtract(const Duration(days: 7)),
             end: DateTime.now(),
           ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            appBarTheme: AppBarTheme(
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null) {
