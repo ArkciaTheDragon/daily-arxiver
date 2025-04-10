@@ -1,7 +1,8 @@
-import 'package:daily_arxiv_flutter/config/app_config.dart';
-import 'package:daily_arxiv_flutter/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../config/app_config.dart';
+import '../services/api_service.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});

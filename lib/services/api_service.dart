@@ -1,18 +1,20 @@
 // services/api_service.dart
 import 'dart:convert';
-import 'package:daily_arxiv_flutter/models/article_model.dart';
-import 'package:daily_arxiv_flutter/models/user_model.dart';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import '../models/query_model.dart';
+
 import '../config/app_config.dart';
+import '../models/article_model.dart';
+import '../models/query_model.dart';
+import '../models/user_model.dart';
 
 class ApiService extends ChangeNotifier {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl: AppConfig().baseUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: const Duration(seconds: 3),
+      receiveTimeout: const Duration(seconds: 5),
     ),
   );
 
@@ -81,7 +83,7 @@ class ApiService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        return List<String>.from(response.data['keywords']);
+        return List<String>.from(response.data);
       }
       throw _handleError(response);
     } on DioException catch (e) {
@@ -144,8 +146,8 @@ class ApiService extends ChangeNotifier {
     const timestampFields = ['added_date', 'submitted_date'];
 
     return json.map((key, value) {
-      if (timestampFields.contains(key) && value is int) {
-        return MapEntry(key, 1000 * value);
+      if (timestampFields.contains(key) && value is num) {
+        return MapEntry(key, (value * 1000).toInt());
       }
       return MapEntry(key, value);
     });

@@ -1,12 +1,14 @@
-import 'package:daily_arxiv_flutter/models/article_model.dart';
-import 'package:daily_arxiv_flutter/models/query_model.dart';
-import 'package:daily_arxiv_flutter/screens/keywords_screen.dart';
-import 'package:daily_arxiv_flutter/services/api_service.dart';
-import 'package:daily_arxiv_flutter/widgets/article_card.dart';
-import 'package:daily_arxiv_flutter/widgets/keyword_input.dart';
-import 'package:daily_arxiv_flutter/widgets/time_range_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../models/article_model.dart';
+import '../models/query_model.dart';
+import '../services/api_service.dart';
+import '../widgets/article_card.dart';
+import '../widgets/keyword_input.dart';
+import '../widgets/time_range_picker.dart';
+import 'keywords_screen.dart';
+import 'article_list_screen.dart';
 
 class QueryScreen extends StatefulWidget {
   final String username;
@@ -26,17 +28,56 @@ class _QueryScreenState extends State<QueryScreen> {
   DateTimeRange? _selectedDateRange;
   List<Article> _articles = [];
   bool _isLoading = false;
+  bool _isLoadingKeywords = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDefaultKeywords();
+  }
+
+  Future<void> _loadDefaultKeywords() async {
+    setState(() {
+      _isLoadingKeywords = true;
+    });
+
+    try {
+      final keywords = await Provider.of<ApiService>(
+        context,
+        listen: false,
+      ).getUserKeywords(widget.username);
+
+      if (mounted) {
+        setState(() {
+          _selectedKeywords = keywords;
+          _isLoadingKeywords = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load default keywords: ${e.toString()}'),
+          ),
+        );
+        setState(() {
+          _isLoadingKeywords = false;
+        });
+      }
+    }
+  }
 
   Future<void> _submitQuery() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    final monthAgo = DateTime.now().subtract(const Duration(days: 30));
 
     try {
       final params = QueryParameters(
         query: _selectedKeywords,
-        startTime: _selectedDateRange?.start ?? monthAgo,
+        startTime:
+            _selectedDateRange?.start ??
+            DateTime.now().subtract(const Duration(days: 30)),
         endTime: _selectedDateRange?.end ?? DateTime.now(),
         startIndex: int.parse(_startIndexController.text),
         endIndex: int.parse(_endIndexController.text),
@@ -46,13 +87,32 @@ class _QueryScreenState extends State<QueryScreen> {
         context,
         listen: false,
       ).executeQuery(params);
-      setState(() => _articles = result);
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Query failed: ${e.toString()}')));
-    } finally {
+
       setState(() => _isLoading = false);
+
+      if (result.isNotEmpty && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => ArticleListScreen(
+                  articles: result,
+                  searchQuery: _selectedKeywords.join(', '),
+                ),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No articles found for your query')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Query failed: ${e.toString()}')),
+        );
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -63,26 +123,42 @@ class _QueryScreenState extends State<QueryScreen> {
         title: Text('Query from ${widget.username}'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed:
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => KeywordsScreen(username: widget.username),
-                  ),
+            icon: const Icon(Icons.saved_search),
+            onPressed: () async {
+              final updatedKeywords = await Navigator.push<List<String>>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => KeywordsScreen(username: widget.username),
                 ),
+              );
+
+              if (updatedKeywords != null && updatedKeywords.isNotEmpty) {
+                setState(() {
+                  _selectedKeywords = updatedKeywords;
+                });
+              }
+            },
           ),
         ],
       ),
       body: Form(
         key: _formKey,
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              KeywordInput(
-                onChanged: (keywords) => _selectedKeywords = keywords,
-              ),
+              _isLoadingKeywords
+                  ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                  : KeywordInput(
+                    initialKeywords: _selectedKeywords,
+                    onChanged: (keywords) => _selectedKeywords = keywords,
+                  ),
               const SizedBox(height: 16),
               TimeRangeDisplayPicker(
                 initialRange: _selectedDateRange,
@@ -111,27 +187,34 @@ class _QueryScreenState extends State<QueryScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                icon:
-                    _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Icon(Icons.search),
-                label: const Text('Search'),
-                onPressed: _isLoading ? null : _submitQuery,
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child:
-                    _articles.isEmpty
-                        ? const Center(child: Text('No papers found'))
-                        : ListView.builder(
-                          itemCount: _articles.length,
-                          itemBuilder:
-                              (ctx, index) =>
-                                  ArticleCard(article: _articles[index]),
+              const SizedBox(height: 32),
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton.icon(
+                    icon: const Icon(Icons.search),
+                    label: const Text('Search Articles'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: _submitQuery,
+                  ),
+              const SizedBox(height: 24),
+              if (_articles.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 32),
+                    child: Column(
+                      children: [
+                        Icon(Icons.search, size: 48, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'Enter keywords and search parameters',
+                          style: TextStyle(color: Colors.grey),
                         ),
-              ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

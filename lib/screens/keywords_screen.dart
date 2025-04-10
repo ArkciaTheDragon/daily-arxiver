@@ -1,4 +1,4 @@
-import 'package:daily_arxiv_flutter/services/api_service.dart';
+import '../services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,49 +15,55 @@ class KeywordsScreenState extends State<KeywordsScreen> {
   final _keywordController = TextEditingController();
   late Future<List<String>> _keywordsFuture;
   List<String> _currentKeywords = [];
+  late ApiService _apiService;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService = Provider.of<ApiService>(context, listen: false);
+    _keywordsFuture = _loadKeywords();
+  }
 
   Future<List<String>> _loadKeywords() async {
     try {
-      final keywords = await context.read<ApiService>().getUserKeywords(
-        widget.username,
-      );
+      final keywords = await _apiService.getUserKeywords(widget.username);
       setState(() => _currentKeywords = keywords);
       return keywords;
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('加载失败: ${e.toString()}')));
+      _showSnackBar('Failed to load keywords: ${e.toString()}');
       return [];
     }
   }
 
   Future<void> _saveKeywords() async {
     try {
-      await context.read<ApiService>().updateUserKeywords(
-        widget.username,
-        _currentKeywords,
-      );
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('保存成功!')));
+      await _apiService.updateUserKeywords(widget.username, _currentKeywords);
+      _showSnackBar('Keywords saved successfully!');
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存失败: ${e.toString()}')));
+      _showSnackBar('Failed to save keywords: ${e.toString()}');
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _keywordsFuture = _loadKeywords();
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _addKeyword() {
+    if (_keywordController.text.trim().isNotEmpty) {
+      setState(() {
+        _currentKeywords.add(_keywordController.text.trim());
+        _keywordController.clear();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.username}的关键词'),
+        title: Text('Keywords of ${widget.username}'),
         actions: [
           IconButton(icon: const Icon(Icons.save), onPressed: _saveKeywords),
         ],
@@ -75,37 +81,19 @@ class KeywordsScreenState extends State<KeywordsScreen> {
                 TextField(
                   controller: _keywordController,
                   decoration: InputDecoration(
-                    labelText: '添加新关键词',
+                    labelText: 'Keyword',
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.add),
-                      onPressed: () {
-                        if (_keywordController.text.trim().isNotEmpty) {
-                          setState(() {
-                            _currentKeywords.add(
-                              _keywordController.text.trim(),
-                            );
-                            _keywordController.clear();
-                          });
-                        }
-                      },
+                      onPressed: _addKeyword,
                     ),
                   ),
-                  onSubmitted:
-                      (_) =>
-                          _keywordController.text.trim().isNotEmpty
-                              ? setState(() {
-                                _currentKeywords.add(
-                                  _keywordController.text.trim(),
-                                );
-                                _keywordController.clear();
-                              })
-                              : null,
+                  onSubmitted: (_) => _addKeyword(),
                 ),
                 const SizedBox(height: 20),
                 Expanded(
                   child:
                       _currentKeywords.isEmpty
-                          ? const Center(child: Text('暂无关键词'))
+                          ? const Center(child: Text('No keywords added yet.'))
                           : ReorderableListView.builder(
                             itemCount: _currentKeywords.length,
                             itemBuilder:

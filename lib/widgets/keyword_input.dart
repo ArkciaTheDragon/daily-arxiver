@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class KeywordInput extends StatefulWidget {
   final ValueChanged<List<String>> onChanged;
+  final List<String> initialKeywords;
 
-  const KeywordInput({super.key, required this.onChanged});
+  const KeywordInput({
+    super.key,
+    required this.onChanged,
+    this.initialKeywords = const [],
+  });
 
   @override
   _KeywordInputState createState() => _KeywordInputState();
@@ -11,7 +16,13 @@ class KeywordInput extends StatefulWidget {
 
 class _KeywordInputState extends State<KeywordInput> {
   final TextEditingController _controller = TextEditingController();
-  final List<String> _keywords = [];
+  late List<String> _keywords;
+
+  @override
+  void initState() {
+    super.initState();
+    _keywords = List.from(widget.initialKeywords);
+  }
 
   void _addKeyword() {
     final keyword = _controller.text.trim();
@@ -39,7 +50,7 @@ class _KeywordInputState extends State<KeywordInput> {
         TextField(
           controller: _controller,
           decoration: InputDecoration(
-            labelText: '输入关键词',
+            labelText: 'Search Keyword',
             suffixIcon: IconButton(
               icon: const Icon(Icons.add_circle),
               onPressed: _addKeyword,
@@ -47,7 +58,7 @@ class _KeywordInputState extends State<KeywordInput> {
             border: const OutlineInputBorder(),
           ),
           textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _addKeyword,
+          onSubmitted: (_) => _addKeyword(), // Handle 'Enter' key press
         ),
         const SizedBox(height: 8),
         Wrap(

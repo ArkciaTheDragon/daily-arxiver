@@ -8,7 +8,7 @@ class AppConfig extends ChangeNotifier {
 
   AppConfig._internal();
 
-  String _baseUrl = 'http://172.29.3.84:5000/'; // Default URL
+  String _baseUrl = 'http://172.29.2.84:5000/'; // Default URL
 
   String get baseUrl => _baseUrl;
 

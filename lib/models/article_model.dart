@@ -15,6 +15,9 @@ class Article {
     required this.authors,
   });
 
+  // Computed property to construct the arXiv link from the arXiv ID
+  String get link => 'https://arxiv.org/abs/$arxivId';
+
   factory Article.fromJson(Map<String, dynamic> json) => Article(
     arxivId: json['arxiv_id'] as String,
     addedTime: DateTime.fromMillisecondsSinceEpoch(json['added_date'] as int),
