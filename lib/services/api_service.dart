@@ -132,9 +132,17 @@ class ApiService extends ChangeNotifier {
     }
   }
 
-  List<Article> _parseArticles(final List<dynamic> articles) {
+  List<Article> _parseArticles(final Map<String, dynamic> articlesData) {
     try {
-      return articles
+      final dynamic articlesList = articlesData['articles'];
+      if (articlesList is! List) {
+        throw ApiException(
+          code: 500,
+          message: 'Invalid article format: "articles" field is not a list.',
+        );
+      }
+
+      return articlesList
           .map((articleJson) {
             try {
               return Article.fromJson(_convertTimestamps(articleJson));
