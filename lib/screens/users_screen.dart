@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 
 import '../config/app_config.dart';
 import '../services/api_service.dart';
+import '../widgets/user_search_bar.dart';
+import '../widgets/user_list.dart';
+import '../utils/user_color.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -69,118 +72,90 @@ class UsersScreenState extends State<UsersScreen>
 
     return Scaffold(
       body: NestedScrollView(
-        headerSliverBuilder:
-            (context, innerBoxIsScrolled) => [
-              SliverAppBar(
-                expandedHeight: 120,
-                floating: true,
-                pinned: true,
-                elevation: 0,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    'Profile',
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          theme.colorScheme.primaryContainer,
-                          theme.colorScheme.surface,
-                        ],
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: 16,
-                        bottom: 80,
-                        right: 16,
-                      ),
-                      child: Align(
-                        alignment: Alignment.bottomLeft,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.people_alt_rounded,
-                              size: 28,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Welcome to your Daily Arxiv',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.settings_rounded),
-                    tooltip: 'Settings',
-                    onPressed: () => Navigator.pushNamed(context, '/settings'),
-                  ),
-                ],
-              ),
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: _SliverSearchBarDelegate(
-                  child: Container(
-                    color: theme.scaffoldBackgroundColor,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: 'Search users...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon:
-                              _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      setState(() {
-                                        _searchQuery = '';
-                                      });
-                                    },
-                                  )
-                                  : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest
-                              .withValues(alpha: 0.5),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  height: 64,
-                ),
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: true,
+            pinned: true,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.settings),
+                onPressed: () {
+                  Navigator.of(context).pushNamed('/settings');
+                },
               ),
             ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                'Profile',
+                style: TextStyle(
+                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.surface,
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    bottom: 80,
+                    right: 16,
+                  ),
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.people_alt_rounded,
+                          size: 28,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Welcome to your Daily Arxiv',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurface.withAlpha(179),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _SliverSearchBarDelegate(
+              child: UserSearchBar(
+                controller: _searchController,
+                searchQuery: _searchQuery,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                onClear: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              ),
+              height: 64,
+            ),
+          ),
+        ],
         body: Consumer<ApiService>(
           builder: (context, apiService, child) {
             return FadeTransition(
@@ -226,9 +201,7 @@ class UsersScreenState extends State<UsersScreen>
                             Text(
                               '${snapshot.error}',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                ),
+                                color: theme.colorScheme.onSurface.withAlpha(179),
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -254,133 +227,15 @@ class UsersScreenState extends State<UsersScreen>
 
                     final filteredUsers = _filterUsers(snapshot.data!);
 
-                    if (filteredUsers.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _searchQuery.isEmpty
-                                  ? Icons.people_outline
-                                  : Icons.search_off_rounded,
-                              size: 64,
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              _searchQuery.isEmpty
-                                  ? 'No users available'
-                                  : 'No users match "${_searchController.text}"',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withValues(
-                                  alpha: 0.7,
-                                ),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (_searchQuery.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              TextButton.icon(
-                                onPressed: () {
-                                  _searchController.clear();
-                                  setState(() {
-                                    _searchQuery = '';
-                                  });
-                                },
-                                icon: const Icon(Icons.clear),
-                                label: const Text('Clear Search'),
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 20),
-                      itemCount: filteredUsers.length,
-                      itemBuilder: (ctx, index) {
-                        final username = filteredUsers[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          child: Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: theme.colorScheme.outline.withValues(
-                                  alpha: 0.2,
-                                ),
-                              ),
-                            ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap:
-                                  () => Navigator.pushNamed(
-                                    context,
-                                    '/query',
-                                    arguments: {'username': username},
-                                  ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: _getUserColor(
-                                        username,
-                                        theme,
-                                      ),
-                                      foregroundColor:
-                                          theme.colorScheme.onPrimary,
-                                      child: Text(
-                                        username.substring(0, 1).toUpperCase(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            username,
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                          ),
-                                          Text(
-                                            'Tap to view search preferences',
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: theme
-                                                      .colorScheme
-                                                      .onSurface
-                                                      .withValues(alpha: 0.6),
-                                                ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      size: 16,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
+                    return UserList(
+                      users: filteredUsers,
+                      searchQuery: _searchQuery,
+                      theme: theme,
+                      getUserColor: getUserColor,
+                      onUserTap: (username) {
+                        Navigator.of(
+                          context,
+                        ).pushNamed('/home', arguments: {'username': username});
                       },
                     );
                   },
@@ -391,24 +246,6 @@ class UsersScreenState extends State<UsersScreen>
         ),
       ),
     );
-  }
-
-  Color _getUserColor(String username, ThemeData theme) {
-    // Generate a deterministic color based on username
-    final int hash = username.codeUnits.fold(
-      0,
-      (prev, element) => prev + element,
-    );
-    final List<Color> colors = [
-      theme.colorScheme.primary,
-      theme.colorScheme.secondary,
-      theme.colorScheme.tertiary,
-      Colors.teal,
-      Colors.indigo,
-      Colors.purple,
-      Colors.deepOrange,
-    ];
-    return colors[hash % colors.length];
   }
 }
 

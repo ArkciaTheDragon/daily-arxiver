@@ -1,4 +1,8 @@
 // main.dart
+import 'package:daily_arxiv_flutter/providers/theme_provider.dart';
+import 'package:daily_arxiv_flutter/providers/user_provider.dart';
+import 'package:daily_arxiv_flutter/screens/favorites_screen.dart';
+import 'package:daily_arxiv_flutter/screens/home_screen.dart';
 import 'package:daily_arxiv_flutter/screens/users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +15,16 @@ import '../services/api_service.dart';
 void main() {
   runApp(
     MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => ApiService())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => ApiService()),
+        ChangeNotifierProxyProvider<ApiService, UserProvider>(
+          create: (context) => UserProvider(),
+          update:
+              (context, apiService, userProvider) =>
+                  userProvider!..setApiService(apiService),
+        ),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -22,33 +35,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Daily Arxiv',
-      debugShowCheckedModeBanner: false,
-      theme: _buildAppTheme(), // Light theme
-      darkTheme: _buildDarkAppTheme(), // Dark theme
-      themeMode: ThemeMode.dark, // Use dark mode by default
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const UsersScreen(),
-        '/query': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map;
-          return QueryScreen(username: args['username'] as String);
-        },
-        '/keywords': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map;
-          return KeywordsScreen(username: args['username'] as String);
-        },
-        '/settings': (context) => SettingsScreen(),
-      },
-      onGenerateRoute: (settings) {
-        // Handle undefined routes
-        return MaterialPageRoute(
-          builder:
-              (context) => Scaffold(
-                appBar: AppBar(title: const Text('Error')),
-                body: Center(child: Text('Page ${settings.name} not found')),
-              ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'Daily Arxiv',
+          debugShowCheckedModeBanner: false,
+          theme: _buildAppTheme(), // Light theme
+          darkTheme: _buildDarkAppTheme(), // Dark theme
+          themeMode: themeProvider.themeMode,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => const UsersScreen(),
+            '/home': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map;
+              final username = args['username'] as String;
+              return HomeScreen(username: username);
+            },
+            '/query': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map;
+              final username = args['username'] as String;
+              // Use a local StatefulWidget to safely handle context after async gap
+              return _QueryScreenWithUserSet(username: username);
+            },
+            '/favorites': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map;
+              final username = args['username'] as String;
+              return FavoritesScreen(username: username);
+            },
+            '/keywords': (context) {
+              final args = ModalRoute.of(context)!.settings.arguments as Map;
+              return KeywordsScreen(username: args['username'] as String);
+            },
+            '/settings': (context) => SettingsScreen(),
+          },
+          onGenerateRoute: (settings) {
+            // Handle undefined routes
+            return MaterialPageRoute(
+              builder:
+                  (context) => Scaffold(
+                    appBar: AppBar(title: const Text('Error')),
+                    body: Center(
+                      child: Text('Page ${settings.name} not found'),
+                    ),
+                  ),
+            );
+          },
         );
       },
     );
@@ -70,7 +101,7 @@ class MyApp extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -92,10 +123,39 @@ class MyApp extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(vertical: 14),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
+  }
+}
+
+class _QueryScreenWithUserSet extends StatefulWidget {
+  final String username;
+  const _QueryScreenWithUserSet({required this.username});
+
+  @override
+  State<_QueryScreenWithUserSet> createState() =>
+      _QueryScreenWithUserSetState();
+}
+
+class _QueryScreenWithUserSetState extends State<_QueryScreenWithUserSet> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) {
+        Provider.of<UserProvider>(
+          context,
+          listen: false,
+        ).setUser(widget.username);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return QueryScreen(username: widget.username);
   }
 }

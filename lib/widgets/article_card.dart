@@ -1,42 +1,48 @@
 import 'package:daily_arxiv_flutter/models/article_model.dart';
+import 'package:daily_arxiv_flutter/providers/user_provider.dart';
+import 'package:daily_arxiv_flutter/screens/analysis_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class ArticleCard extends StatelessWidget {
+class ArticleCard extends StatefulWidget {
   final Article article;
 
   const ArticleCard({super.key, required this.article});
 
-  Future<void> _openLink(BuildContext context, String url) async {
+  @override
+  State<ArticleCard> createState() => _ArticleCardState();
+}
+
+class _ArticleCardState extends State<ArticleCard> {
+  bool _isAuthorListExpanded = false;
+  bool _isAbstractExpanded = false;
+  final int maxAuthors = 3;
+
+  Future<void> _analyzePaper() async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnalysisScreen(arxivId: widget.article.arxivId),
+      ),
+    );
+  }
+
+  Future<void> _openLink(String url) async {
     try {
       final uri = Uri.parse(url);
-      // Use launch URL directly without checking first
-      if (await launchUrl(
-        uri,
-        mode:
-            LaunchMode
-                .externalApplication, // Try using external application mode
-      )) {
-        return; // Successfully launched
+      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        if (!mounted) return;
+        _showCopyLinkDialog(context, url);
       }
     } on PlatformException catch (e) {
-      // Handle platform exception
+      if (!mounted) return;
       _showErrorSnackbar(context, 'Platform error: ${e.message}');
-      return;
     } catch (e) {
-      // Handle other exceptions
+      if (!mounted) return;
       _showErrorSnackbar(context, 'Error opening link: $e');
-      return;
-    }
-
-    // If we get here, launchUrl returned false
-    _showErrorSnackbar(context, 'Could not open the link: $url');
-
-    // Offer to copy the URL to clipboard as a fallback
-    if (context.mounted) {
-      _showCopyLinkDialog(context, url);
     }
   }
 
@@ -51,91 +57,261 @@ class ArticleCard extends StatelessWidget {
   void _showCopyLinkDialog(BuildContext context, String url) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Could not open link'),
-            content: const Text('Do you want to copy the link to clipboard?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: url));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Link copied to clipboard')),
-                  );
-                },
-                child: const Text('Copy'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Copy Link'),
+        content: Text('Could not open the link. Do you want to copy the URL?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: url));
+              Navigator.pop(context);
+              _showErrorSnackbar(context, 'Link copied to clipboard');
+            },
+            child: const Text('Copy'),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final isRead = userProvider.isArticleRead(widget.article.arxivId);
+    final isFavorite = userProvider.isArticleFavorite(widget.article.arxivId);
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => _openLink(context, article.link),
-        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          userProvider.toggleReadStatus(widget.article);
+        },
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                article.title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.article.title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isRead
+                            ? Theme.of(context).disabledColor
+                            : Theme.of(context).textTheme.bodyLarge!.color,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
-                'Authors: ${article.authors.join(', ')}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                widget.article.arxivId,
+                style: TextStyle(
+                  color: isRead
+                      ? Theme.of(context).disabledColor
+                      : Colors.grey[600],
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 12),
-              Text(
-                article.abstract,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
+              _buildAuthorList(),
+              const SizedBox(height: 12),
+              _buildAbstract(),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Submitted: ${_formatTime(article.submittedTime)}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'Submitted: ${_formatTime(widget.article.submittedTime)}',
+                    style: TextStyle(
+                      color: isRead
+                          ? Theme.of(context).disabledColor
+                          : Colors.grey[600],
+                      fontSize: 12,
+                    ),
                   ),
                   Text(
-                    'Added: ${_formatTime(article.addedTime)}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                    'Added: ${_formatTime(widget.article.addedTime)}',
+                    style: TextStyle(
+                      color: isRead
+                          ? Theme.of(context).disabledColor
+                          : Colors.grey[600],
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('View Paper'),
-                  onPressed: () => _openLink(context, article.link),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.star : Icons.star_border,
+                      color: isFavorite ? Colors.yellow : null,
+                    ),
+                    onPressed: () =>
+                        userProvider.toggleFavoriteStatus(widget.article),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.analytics_outlined),
+                    onPressed: _analyzePaper,
+                    tooltip: 'Analyze Paper',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new),
+                    onPressed: () => _openLink(widget.article.link),
+                    tooltip: 'Open on ArXiv',
+                  ),
+                ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAbstract() {
+    final isRead = Provider.of<UserProvider>(
+      context,
+      listen: false,
+    ).isArticleRead(widget.article.arxivId);
+
+    final textStyle = TextStyle(
+      color: isRead
+          ? Theme.of(context).disabledColor
+          : Theme.of(context).textTheme.bodyMedium!.color,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: TextSpan(text: widget.article.abstract, style: textStyle),
+          maxLines: 5,
+          textDirection: Directionality.of(context),
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final showMoreButton = textPainter.didExceedMaxLines;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.article.abstract,
+              maxLines: _isAbstractExpanded ? null : 5,
+              overflow: _isAbstractExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
+              style: textStyle,
+            ),
+            if (showMoreButton)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    minimumSize: Size.zero,
+                  ),
+                  child: Text(
+                    _isAbstractExpanded ? 'Less' : 'More',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isAbstractExpanded = !_isAbstractExpanded;
+                    });
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAuthorList() {
+    final authors = widget.article.authors;
+    final authorTextStyle = TextStyle(
+      fontStyle: FontStyle.italic,
+      color: Theme.of(context).disabledColor,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textPainter = TextPainter(
+          text: TextSpan(text: authors.join(', '), style: authorTextStyle),
+          maxLines: 1,
+          textDirection: Directionality.of(context),
+        )..layout(maxWidth: constraints.maxWidth);
+
+        final showMoreButton = textPainter.didExceedMaxLines;
+
+        if (!showMoreButton) {
+          return Text(authors.join(', '), style: authorTextStyle);
+        }
+
+        final displayedAuthors = _isAuthorListExpanded
+            ? authors
+            : authors.take(maxAuthors).toList();
+
+        final toggleButton = TextButton(
+          onPressed: () {
+            setState(() {
+              _isAuthorListExpanded = !_isAuthorListExpanded;
+            });
+          },
+          child: Text(
+            _isAuthorListExpanded ? 'Less' : 'More',
+            style: TextStyle(
+              color: Theme.of(context).primaryColor,
+              fontSize: 12,
+            ),
+          ),
+        );
+
+        if (_isAuthorListExpanded) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(displayedAuthors.join(', '), style: authorTextStyle),
+              toggleButton,
+            ],
+          );
+        } else {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  "${displayedAuthors.join(', ')} et al.",
+                  style: authorTextStyle,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              toggleButton,
+            ],
+          );
+        }
+      },
     );
   }
 

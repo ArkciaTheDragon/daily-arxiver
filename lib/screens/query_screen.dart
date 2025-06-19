@@ -100,7 +100,7 @@ class QueryScreenState extends State<QueryScreen> {
             builder:
                 (context) => ArticleListScreen(
                   articles: result,
-                  searchQuery: _selectedKeywords.join(', '),
+                  searchQuery: _selectedKeywords,
                 ),
           ),
         );
@@ -264,7 +264,7 @@ class QueryScreenState extends State<QueryScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton.icon(
                     icon: const Icon(Icons.search),
-                    label: const Text('Search Articles'),
+                    label: const Text('Search Papers'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),

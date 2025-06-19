@@ -1,4 +1,6 @@
+import 'package:daily_arxiv_flutter/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../config/app_config.dart';
 
@@ -19,6 +21,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: SingleChildScrollView(
@@ -27,6 +30,29 @@ class SettingsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text(
+                'Theme',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('Light'),
+                value: ThemeMode.light,
+                groupValue: themeProvider.themeMode,
+                onChanged: (value) => themeProvider.setThemeMode(value!),
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('Dark'),
+                value: ThemeMode.dark,
+                groupValue: themeProvider.themeMode,
+                onChanged: (value) => themeProvider.setThemeMode(value!),
+              ),
+              RadioListTile<ThemeMode>(
+                title: const Text('System'),
+                value: ThemeMode.system,
+                groupValue: themeProvider.themeMode,
+                onChanged: (value) => themeProvider.setThemeMode(value!),
+              ),
+              const Divider(),
               TextField(
                 controller: _urlController,
                 decoration: const InputDecoration(

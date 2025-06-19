@@ -5,14 +5,16 @@ class Article {
   final String title;
   final String abstract;
   final List<String> authors;
+  final bool isRead;
 
-  const Article({
+  Article({
     required this.arxivId,
     required this.addedTime,
     required this.submittedTime,
     required this.title,
     required this.abstract,
     required this.authors,
+    this.isRead = false,
   });
 
   // Computed property to construct the arXiv link from the arXiv ID
@@ -27,6 +29,7 @@ class Article {
     title: json['title'] as String,
     abstract: json['abstract'] as String,
     authors: List<String>.from(json['authors'] as List),
+    isRead: json['isRead'] as bool? ?? false,
   );
 
   Map<String, dynamic> toJson() => {
@@ -36,5 +39,6 @@ class Article {
     'title': title,
     'abstract': abstract,
     'authors': authors,
+    'isRead': isRead,
   };
 }

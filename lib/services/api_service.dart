@@ -36,98 +36,148 @@ class ApiService extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<List<Article>> executeQuery(QueryParameters parameters) async {
-    try {
-      final response = await _dio.post(
-        '/query',
-        data: parameters.toJson(),
-        options: Options(
-          contentType: Headers.jsonContentType,
-          validateStatus: (status) => status! < 500,
-        ),
+  Future<List<Article>> executeQuery(QueryParameters parameters) => _request(
+    'POST',
+    '/query',
+    data: parameters.toJson(),
+    parser: (data) => _parseArticles(data),
+    errorMessage: 'Network error',
+  );
+
+  Future<List<String>> fetchUsers() => _request(
+    'GET',
+    '/users',
+    parser: (data) => UserResponse.fromJson(data).usernames,
+    errorMessage: 'Failed to fetch users',
+  );
+
+  Future<String> analyzePaperSection(String arxivId, String section) =>
+      _request(
+        'POST',
+        '/analysis',
+        data: {'arxiv_id': arxivId, 'section': section},
+        parser: _parsePaperAnalysis,
+        errorMessage: 'Failed to analyze section',
+        receiveTimeout: const Duration(minutes: 1),
       );
 
-      if (response.statusCode != 200) {
-        throw _handleError(response);
+  String _parsePaperAnalysis(dynamic data) {
+    if (data is Map) {
+      if (data.containsKey('anaysis')) {
+        return data['anaysis'] as String;
+      } else if (data.containsKey('analysis')) {
+        return data['analysis'] as String;
+      } else if (data.containsKey('error')) {
+        return data['error'] as String;
       }
-
-      return _parseArticles(response.data);
-    } on DioException catch (e) {
-      throw ApiException(
-        code: e.response?.statusCode ?? 0,
-        message: e.message ?? 'Network error',
-      );
-    } catch (e) {
-      throw const ApiException(code: 0, message: 'Unknown error');
     }
+    throw ApiException(
+      code: -1,
+      message: 'Unexpected server response for analysis.',
+    );
   }
 
-  Future<List<String>> fetchUsers() async {
-    try {
-      final response = await _dio.get(
-        '/users',
-        options: Options(validateStatus: (status) => status! < 500),
-      );
+  Future<List<String>> getUserKeywords(String username) => _request(
+    'GET',
+    '/keywords',
+    queryParameters: {'username': username},
+    parser: (data) => List<String>.from(data['keywords']),
+    errorMessage: 'Failed to fetch keywords',
+  );
 
-      if (response.statusCode == 200) {
-        return UserResponse.fromJson(response.data).usernames;
-      }
-      throw _handleError(response);
-    } on DioException catch (e) {
-      throw ApiException(
-        code: e.response?.statusCode ?? 0,
-        message: e.message ?? 'Failed to fetch users',
-      );
-    } catch (e) {
-      throw const ApiException(code: 0, message: 'Unknown error');
-    }
-  }
-
-  Future<List<String>> getUserKeywords(String username) async {
-    try {
-      final response = await _dio.get(
-        '/keywords',
-        queryParameters: {'username': username},
-        options: Options(
-          contentType: Headers.jsonContentType,
-          validateStatus: (status) => status! < 500,
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        return List<String>.from(response.data);
-      }
-      throw _handleError(response);
-    } on DioException catch (e) {
-      throw ApiException(
-        code: e.response?.statusCode ?? 0,
-        message: e.message ?? 'Failed to fetch keywords',
-      );
-    }
-  }
-
-  Future<bool> updateUserKeywords(
-    String username,
-    List<String> keywords,
-  ) async {
-    try {
-      final response = await _dio.post(
+  Future<bool> updateUserKeywords(String username, List<String> keywords) =>
+      _request(
+        'POST',
         '/keywords',
         data: {'username': username, 'keywords': keywords},
+        parser: (data) => data['success'] as bool,
+        errorMessage: 'Failed to update keywords',
+      );
+
+  Future<List<String>> getUserReadPapers(String username) => _request(
+    'GET',
+    '/users/read_papers',
+    queryParameters: {'username': username},
+    parser: (data) => List<String>.from(data['arxiv_ids']),
+    errorMessage: 'Failed to fetch read papers',
+  );
+
+  Future<bool> setUserReadPapers(String username, List<String> arxivIds) =>
+      _request(
+        'POST',
+        '/users/read_papers',
+        data: {'username': username, 'arxiv_ids': arxivIds},
+        parser: (data) => data['success'] as bool,
+        errorMessage: 'Failed to set read papers',
+      );
+
+  Future<List<String>> getUserFavoritePapers(String username) => _request(
+    'GET',
+    '/users/favorite_papers',
+    queryParameters: {'username': username},
+    parser: (data) => List<String>.from(data['arxiv_ids']),
+    errorMessage: 'Failed to fetch favorite papers',
+  );
+
+  Future<bool> setUserFavoritePapers(String username, List<String> arxivIds) =>
+      _request(
+        'POST',
+        '/users/favorite_papers',
+        data: {'username': username, 'arxiv_ids': arxivIds},
+        parser: (data) => data['success'] as bool,
+        errorMessage: 'Failed to set favorite papers',
+      );
+
+  Future<T> _request<T>(
+    String method,
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    required T Function(dynamic) parser,
+    required String errorMessage,
+    Duration? receiveTimeout,
+  }) async {
+    try {
+      debugPrint(
+        'Request: $method $path\nData: $data\nQuery: $queryParameters',
+      );
+      final response = await _dio.request(
+        path,
+        data: data,
+        queryParameters: queryParameters,
         options: Options(
+          method: method,
           contentType: Headers.jsonContentType,
           validateStatus: (status) => status! < 500,
+          receiveTimeout: receiveTimeout,
         ),
       );
 
       if (response.statusCode == 200) {
-        return response.data['success'] as bool;
+        try {
+          return parser(response.data);
+        } catch (e) {
+          debugPrint(
+            'Unexpected response from $path: $e\nData: ${response.data}',
+          );
+          if (e is ApiException) rethrow;
+          throw const ApiException(
+            code: -1,
+            message: 'Failed to parse data from the server.',
+          );
+        }
       }
       throw _handleError(response);
     } on DioException catch (e) {
       throw ApiException(
         code: e.response?.statusCode ?? 0,
-        message: e.message ?? 'Failed to update keywords',
+        message: e.message ?? errorMessage,
+      );
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException(
+        code: -1,
+        message: 'An unknown error occurred: $errorMessage',
       );
     }
   }
@@ -137,7 +187,7 @@ class ApiService extends ChangeNotifier {
       final dynamic articlesList = articlesData['articles'];
       if (articlesList is! List) {
         throw ApiException(
-          code: 500,
+          code: -1,
           message: 'Invalid article format: "articles" field is not a list.',
         );
       }
@@ -155,7 +205,7 @@ class ApiService extends ChangeNotifier {
           .toList();
     } catch (e) {
       throw ApiException(
-        code: 500,
+        code: -1,
         message: 'Failed to parse articles: ${e.toString()}',
       );
     }
@@ -192,13 +242,16 @@ class ApiService extends ChangeNotifier {
         return 'Unauthorized';
       case 404:
         return 'Not found';
+      case 500:
+        return 'Internal server error';
+      case 502:
+        return 'Bad gateway';
       default:
         return 'Error ($code)';
     }
   }
 }
 
-// 自定义异常类
 class ApiException implements Exception {
   final int code;
   final String message;
@@ -206,5 +259,8 @@ class ApiException implements Exception {
   const ApiException({required this.code, required this.message});
 
   @override
-  String toString() => '[HTTP $code] $message';
+  String toString() {
+    if (code > 99) return '[HTTP $code] $message';
+    return message;
+  }
 }

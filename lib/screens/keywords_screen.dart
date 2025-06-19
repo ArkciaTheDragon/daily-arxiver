@@ -1,4 +1,5 @@
 import '../services/api_service.dart';
+import '../widgets/keywords_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -137,7 +138,6 @@ class KeywordsScreenState extends State<KeywordsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -164,34 +164,9 @@ class KeywordsScreenState extends State<KeywordsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Material(
-                    elevation: 2,
-                    shadowColor: Colors.black.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    child: TextField(
-                      controller: _keywordController,
-                      decoration: InputDecoration(
-                        labelText: 'Add new keyword',
-                        hintText: 'Type and press Enter or tap +',
-                        floatingLabelBehavior: FloatingLabelBehavior.never,
-                        prefixIcon: const Icon(Icons.tag_rounded),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            Icons.add_circle,
-                            color: theme.colorScheme.primary,
-                          ),
-                          onPressed: _addKeyword,
-                          tooltip: 'Add keyword',
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: theme.colorScheme.surface,
-                      ),
-                      onSubmitted: (_) => _addKeyword(),
-                    ),
+                  KeywordInputField(
+                    controller: _keywordController,
+                    onAdd: _addKeyword,
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -225,88 +200,46 @@ class KeywordsScreenState extends State<KeywordsScreen> {
                       Text(
                         'Drag to reorder',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
-                          ),
+                          color: theme.colorScheme.onSurface.withAlpha(150),
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         Icons.drag_indicator,
                         size: 16,
-                        color: theme.colorScheme.onSurface.withValues(
-                          alpha: 0.6,
-                        ),
+                        color: theme.colorScheme.onSurface.withAlpha(150),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Expanded(
-                    child:
-                        _currentKeywords.isEmpty
-                            ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.label,
-                                    size: 48,
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: .4),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'No keywords added yet.',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withValues(alpha: .6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                            : ReorderableListView.builder(
-                              itemCount: _currentKeywords.length,
-                              itemBuilder:
-                                  (ctx, index) => ListTile(
-                                    key: ValueKey(_currentKeywords[index]),
-                                    title: Text(_currentKeywords[index]),
-                                    trailing: IconButton(
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: theme.colorScheme.error,
-                                      ),
-                                      onPressed: () => _removeKeyword(index),
-                                    ),
-                                  ),
-                              onReorder: (oldIndex, newIndex) {
-                                setState(() {
-                                  if (newIndex > oldIndex) newIndex--;
-                                  final item = _currentKeywords.removeAt(
-                                    oldIndex,
-                                  );
-                                  _currentKeywords.insert(newIndex, item);
-                                  _checkForChanges();
-                                });
-                              },
-                            ),
+                    child: KeywordsList(
+                      keywords: _currentKeywords,
+                      onRemove: _removeKeyword,
+                      onReorder: (oldIndex, newIndex) {
+                        setState(() {
+                          if (newIndex > oldIndex) newIndex--;
+                          final item = _currentKeywords.removeAt(oldIndex);
+                          _currentKeywords.insert(newIndex, item);
+                          _checkForChanges();
+                        });
+                      },
+                    ),
                   ),
                 ],
               ),
             );
           },
         ),
-        floatingActionButton:
-            _hasUnsavedChanges
-                ? FloatingActionButton(
-                  onPressed: _isSaving ? null : _saveKeywords,
-                  tooltip: 'Refresh users',
-                  child:
-                      _isSaving
-                          ? const CircularProgressIndicator()
-                          : const Icon(Icons.save),
-                )
-                : null,
+        floatingActionButton: _hasUnsavedChanges
+            ? FloatingActionButton(
+                onPressed: _isSaving ? null : _saveKeywords,
+                tooltip: 'Save keywords',
+                child: _isSaving
+                    ? const CircularProgressIndicator()
+                    : const Icon(Icons.save),
+              )
+            : null,
       ),
     );
   }
