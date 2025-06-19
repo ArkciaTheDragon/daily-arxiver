@@ -1,23 +1,41 @@
-import 'package:daily_arxiv_flutter/providers/theme_provider.dart';
+import 'package:daily_arxiver/providers/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../config/app_config.dart';
 
-class SettingsScreen extends StatelessWidget {
-  final TextEditingController _urlController = TextEditingController(
-    text: AppConfig().baseUrl,
-  );
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
 
-  final TextEditingController _connectTimeoutController = TextEditingController(
-    text: AppConfig().connectTimeout.toString(),
-  );
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
 
-  final TextEditingController _receiveTimeoutController = TextEditingController(
-    text: AppConfig().receiveTimeout.toString(),
-  );
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final TextEditingController _urlController;
+  late final TextEditingController _connectTimeoutController;
+  late final TextEditingController _receiveTimeoutController;
 
-  SettingsScreen({super.key});
+  @override
+  void initState() {
+    super.initState();
+    final appConfig = AppConfig();
+    _urlController = TextEditingController(text: appConfig.baseUrl);
+    _connectTimeoutController = TextEditingController(
+      text: appConfig.connectTimeout.toString(),
+    );
+    _receiveTimeoutController = TextEditingController(
+      text: appConfig.receiveTimeout.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    _connectTimeoutController.dispose();
+    _receiveTimeoutController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,54 +105,50 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _saveSettings(context),
+        onPressed: _saveSettings,
         tooltip: 'Save Settings',
         child: const Icon(Icons.save),
       ),
     );
   }
 
-  void _saveSettings(BuildContext context) {
-    // Save base URL
-    AppConfig().baseUrl = _urlController.text;
-
-    // Save connect timeout (with validation)
-    try {
-      final connectTimeout = int.parse(_connectTimeoutController.text);
-      if (connectTimeout > 0) {
-        AppConfig().connectTimeout = connectTimeout;
-      } else {
-        _showError(context, 'Connect timeout must be greater than 0');
-        return;
-      }
-    } catch (e) {
-      _showError(context, 'Invalid connect timeout value');
+  Future<void> _saveSettings() async {
+    final connectTimeout = int.tryParse(_connectTimeoutController.text);
+    if (connectTimeout == null) {
+      _showError('Invalid connect timeout value.');
       return;
     }
 
-    // Save receive timeout (with validation)
-    try {
-      final receiveTimeout = int.parse(_receiveTimeoutController.text);
-      if (receiveTimeout > 0) {
-        AppConfig().receiveTimeout = receiveTimeout;
-      } else {
-        _showError(context, 'Receive timeout must be greater than 0');
-        return;
-      }
-    } catch (e) {
-      _showError(context, 'Invalid receive timeout value');
+    final receiveTimeout = int.tryParse(_receiveTimeoutController.text);
+    if (receiveTimeout == null) {
+      _showError('Invalid receive timeout value.');
       return;
     }
 
-    // Show success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings updated successfully!')),
-    );
+    try {
+      final appConfig = AppConfig();
+      await appConfig.setBaseUrl(_urlController.text);
+      await appConfig.setConnectTimeout(connectTimeout);
+      await appConfig.setReceiveTimeout(receiveTimeout);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Settings saved successfully!')),
+      );
+    } on ArgumentError catch (e) {
+      _showError(e.message);
+    } catch (e) {
+      _showError('An unexpected error occurred: $e');
+    }
   }
 
-  void _showError(BuildContext context, String message) {
+  void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
   }
 }

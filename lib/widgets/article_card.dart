@@ -1,6 +1,6 @@
-import 'package:daily_arxiv_flutter/models/article_model.dart';
-import 'package:daily_arxiv_flutter/providers/user_provider.dart';
-import 'package:daily_arxiv_flutter/screens/analysis_screen.dart';
+import 'package:daily_arxiver/models/article_model.dart';
+import 'package:daily_arxiver/providers/user_provider.dart';
+import 'package:daily_arxiver/screens/analysis_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';

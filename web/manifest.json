@@ -1,6 +1,6 @@
 {
-    "name": "daily_arxiv_flutter",
-    "short_name": "daily_arxiv_flutter",
+    "name": "daily_arxiver",
+    "short_name": "daily_arxiver",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

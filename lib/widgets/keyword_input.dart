@@ -64,16 +64,15 @@ class KeywordInputState extends State<KeywordInput> {
         Wrap(
           spacing: 6,
           runSpacing: 6,
-          children:
-              _keywords
-                  .map(
-                    (keyword) => Chip(
-                      label: Text(keyword),
-                      deleteIcon: const Icon(Icons.cancel, size: 18),
-                      onDeleted: () => _removeKeyword(keyword),
-                    ),
-                  )
-                  .toList(),
+          children: _keywords
+              .map(
+                (keyword) => Chip(
+                  label: Text(keyword),
+                  deleteIcon: const Icon(Icons.cancel, size: 18),
+                  onDeleted: () => _removeKeyword(keyword),
+                ),
+              )
+              .toList(),
         ),
       ],
     );

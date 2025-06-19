@@ -82,7 +82,9 @@ class TimeRangePickerState extends State<TimeRangePicker> {
                       'From: ${_dateFormat.format(_selectedRange!.start)}',
                       style: theme.textTheme.bodySmall,
                     ),
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),
@@ -92,7 +94,9 @@ class TimeRangePickerState extends State<TimeRangePicker> {
                       'To: ${_dateFormat.format(_selectedRange!.end)}',
                       style: theme.textTheme.bodySmall,
                     ),
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.1,
+                    ),
                     padding: EdgeInsets.zero,
                     visualDensity: VisualDensity.compact,
                   ),

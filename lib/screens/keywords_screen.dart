@@ -200,14 +200,18 @@ class KeywordsScreenState extends State<KeywordsScreen> {
                       Text(
                         'Drag to reorder',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurface.withAlpha(150),
+                          color: theme.colorScheme.onSurface.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         Icons.drag_indicator,
                         size: 16,
-                        color: theme.colorScheme.onSurface.withAlpha(150),
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ],
                   ),

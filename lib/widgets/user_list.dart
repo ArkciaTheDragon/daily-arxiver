@@ -56,7 +56,9 @@ class UserList extends StatelessWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: theme.colorScheme.outline.withValues(alpha: 0.2)),
+              side: BorderSide(
+                color: theme.colorScheme.outline.withValues(alpha: 0.2),
+              ),
             ),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),

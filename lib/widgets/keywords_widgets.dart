@@ -14,7 +14,7 @@ class KeywordInputField extends StatelessWidget {
     final theme = Theme.of(context);
     return Material(
       elevation: 2,
-      shadowColor: Colors.black.withAlpha(25),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(12),
       child: TextField(
         controller: controller,
@@ -63,13 +63,13 @@ class KeywordsList extends StatelessWidget {
             Icon(
               Icons.label,
               size: 48,
-              color: theme.colorScheme.onSurface.withAlpha(100),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 8),
             Text(
               'No keywords added yet.',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withAlpha(150),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],

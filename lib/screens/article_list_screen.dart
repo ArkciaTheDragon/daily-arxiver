@@ -34,12 +34,9 @@ class _ArticleListScreenState extends State<ArticleListScreen> {
       builder: (context, userProvider, child) {
         List<Article> articles = widget.articles;
         if (_showUnreadOnly) {
-          articles =
-              articles
-                  .where(
-                    (article) => !userProvider.isArticleRead(article.arxivId),
-                  )
-                  .toList();
+          articles = articles
+              .where((article) => !userProvider.isArticleRead(article.arxivId))
+              .toList();
         }
         return Scaffold(
           appBar: AppBar(
@@ -56,32 +53,28 @@ class _ArticleListScreenState extends State<ArticleListScreen> {
               ),
             ],
           ),
-          body:
-              articles.isEmpty
-                  ? const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search_off, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No articles found',
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          'Try modifying your search criteria',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                  : ListView.builder(
-                    itemCount: articles.length,
-                    itemBuilder: (context, index) {
-                      return ArticleCard(article: articles[index]);
-                    },
+          body: articles.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.search_off, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text('No articles found', style: TextStyle(fontSize: 18)),
+                      SizedBox(height: 8),
+                      Text(
+                        'Try modifying your search criteria',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
                   ),
+                )
+              : ListView.builder(
+                  itemCount: articles.length,
+                  itemBuilder: (context, index) {
+                    return ArticleCard(article: articles[index]);
+                  },
+                ),
         );
       },
     );

@@ -72,10 +72,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             },
             icon: Icon(
               Icons.monetization_on_outlined,
-              color:
-                  _useDollarSignsForLatex
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withAlpha(97),
+              color: _useDollarSignsForLatex
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             tooltip: 'Use dollar signs for LaTeX',
           ),
@@ -87,10 +88,11 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             },
             icon: Icon(
               Icons.select_all_outlined,
-              color:
-                  _selectable
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface.withAlpha(97),
+              color: _selectable
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             tooltip: 'Selectable text',
           ),
@@ -108,20 +110,17 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             const SizedBox(height: 16),
             Wrap(
               spacing: 8.0,
-              children:
-                  _sections.map((section) {
-                    return ElevatedButton(
-                      onPressed:
-                          _isLoading ? null : () => _analyzeSection(section),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            _selectedSection == section
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                : null,
-                      ),
-                      child: Text(section),
-                    );
-                  }).toList(),
+              children: _sections.map((section) {
+                return ElevatedButton(
+                  onPressed: _isLoading ? null : () => _analyzeSection(section),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _selectedSection == section
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : null,
+                  ),
+                  child: Text(section),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 24),
             if (_isLoading)
@@ -155,9 +154,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
 
                               final controller = ScrollController();
                               return Material(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onInverseSurface.withAlpha(26),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onInverseSurface
+                                    .withValues(alpha: 0.1),
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Scrollbar(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:daily_arxiv_flutter/services/api_service.dart';
-import 'package:daily_arxiv_flutter/models/article_model.dart';
+import 'package:daily_arxiver/services/api_service.dart';
+import 'package:daily_arxiver/models/article_model.dart';
 
 class UserProvider extends ChangeNotifier {
   String? _currentUser;

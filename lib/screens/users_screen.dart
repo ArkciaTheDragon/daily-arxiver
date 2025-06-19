@@ -124,7 +124,9 @@ class UsersScreenState extends State<UsersScreen>
                         Text(
                           'Welcome to your Daily Arxiv',
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurface.withAlpha(179),
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.7,
+                            ),
                           ),
                         ),
                       ],
@@ -201,7 +203,9 @@ class UsersScreenState extends State<UsersScreen>
                             Text(
                               '${snapshot.error}',
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurface.withAlpha(179),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.7,
+                                ),
                               ),
                               textAlign: TextAlign.center,
                             ),

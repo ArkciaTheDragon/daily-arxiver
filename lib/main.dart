@@ -1,9 +1,9 @@
 // main.dart
-import 'package:daily_arxiv_flutter/providers/theme_provider.dart';
-import 'package:daily_arxiv_flutter/providers/user_provider.dart';
-import 'package:daily_arxiv_flutter/screens/favorites_screen.dart';
-import 'package:daily_arxiv_flutter/screens/home_screen.dart';
-import 'package:daily_arxiv_flutter/screens/users_screen.dart';
+import 'package:daily_arxiver/providers/theme_provider.dart';
+import 'package:daily_arxiver/providers/user_provider.dart';
+import 'package:daily_arxiver/screens/favorites_screen.dart';
+import 'package:daily_arxiver/screens/home_screen.dart';
+import 'package:daily_arxiver/screens/users_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,9 +19,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => ApiService()),
         ChangeNotifierProxyProvider<ApiService, UserProvider>(
           create: (context) => UserProvider(),
-          update:
-              (context, apiService, userProvider) =>
-                  userProvider!..setApiService(apiService),
+          update: (context, apiService, userProvider) =>
+              userProvider!..setApiService(apiService),
         ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
@@ -71,13 +70,10 @@ class MyApp extends StatelessWidget {
           onGenerateRoute: (settings) {
             // Handle undefined routes
             return MaterialPageRoute(
-              builder:
-                  (context) => Scaffold(
-                    appBar: AppBar(title: const Text('Error')),
-                    body: Center(
-                      child: Text('Page ${settings.name} not found'),
-                    ),
-                  ),
+              builder: (context) => Scaffold(
+                appBar: AppBar(title: const Text('Error')),
+                body: Center(child: Text('Page ${settings.name} not found')),
+              ),
             );
           },
         );

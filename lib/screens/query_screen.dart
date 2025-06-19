@@ -97,11 +97,10 @@ class QueryScreenState extends State<QueryScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => ArticleListScreen(
-                  articles: result,
-                  searchQuery: _selectedKeywords,
-                ),
+            builder: (context) => ArticleListScreen(
+              articles: result,
+              searchQuery: _selectedKeywords,
+            ),
           ),
         );
       } else if (mounted) {
@@ -172,16 +171,16 @@ class QueryScreenState extends State<QueryScreen> {
                       const SizedBox(height: 12),
                       _isLoadingKeywords
                           ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(vertical: 20),
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
                           : KeywordInput(
-                            initialKeywords: _selectedKeywords,
-                            onChanged:
-                                (keywords) => _selectedKeywords = keywords,
-                          ),
+                              initialKeywords: _selectedKeywords,
+                              onChanged: (keywords) =>
+                                  _selectedKeywords = keywords,
+                            ),
                     ],
                   ),
                 ),
@@ -204,9 +203,8 @@ class QueryScreenState extends State<QueryScreen> {
                       const SizedBox(height: 12),
                       TimeRangePicker(
                         initialRange: _selectedDateRange,
-                        onRangeSelected:
-                            (range) =>
-                                setState(() => _selectedDateRange = range),
+                        onRangeSelected: (range) =>
+                            setState(() => _selectedDateRange = range),
                       ),
                     ],
                   ),
@@ -263,13 +261,13 @@ class QueryScreenState extends State<QueryScreen> {
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton.icon(
-                    icon: const Icon(Icons.search),
-                    label: const Text('Search Papers'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      icon: const Icon(Icons.search),
+                      label: const Text('Search Papers'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      onPressed: _submitQuery,
                     ),
-                    onPressed: _submitQuery,
-                  ),
               const SizedBox(height: 24),
             ],
           ),

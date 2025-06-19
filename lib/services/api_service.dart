@@ -225,8 +225,9 @@ class ApiService extends ChangeNotifier {
 
   ApiException _handleError(Response response) {
     final statusCode = response.statusCode ?? 500;
-    final errorData =
-        response.data is String ? jsonDecode(response.data) : response.data;
+    final errorData = response.data is String
+        ? jsonDecode(response.data)
+        : response.data;
 
     return ApiException(
       code: statusCode,

@@ -1,4 +1,4 @@
-package com.example.daily_arxiv_flutter
+package com.example.daily_arxiver
 
 import io.flutter.embedding.android.FlutterActivity
 
